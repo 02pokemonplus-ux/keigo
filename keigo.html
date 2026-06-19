@@ -102,13 +102,23 @@ body.dark .star-row .star-empty { color: #333; }
 body.grayscale { filter: grayscale(1); }
 body.grayscale.dark { filter: grayscale(1); }
 
-.theme-toggle-group { display: flex; gap: 4px; align-items: center; }
-.theme-btn { border: 1.5px solid #ddd; background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; color: #666; transition: all 0.15s; line-height: 1.4; }
-.theme-btn:hover { border-color: #aaa; background: #f5f5f5; }
-.theme-btn.active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
-body.dark .theme-btn { background: #1a1c26; border-color: #3a3d52; color: #aaa; }
-body.dark .theme-btn:hover { border-color: #666; }
-body.dark .theme-btn.active { background: #e8e8f0; border-color: #e8e8f0; color: #1a1c26; }
+.theme-toggle-btn {
+  border: 1.5px solid #ddd;
+  background: #fff;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.theme-toggle-btn:hover { border-color: #aaa; background: #f5f5f5; }
+body.dark .theme-toggle-btn { background: #1a1c26; border-color: #3a3d52; color: #ccc; }
+body.dark .theme-toggle-btn:hover { border-color: #666; background: #20222e; }
 
 .header { background: #fff; border-bottom: 1px solid #e4e6ef; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .header h1 { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; flex: 1; min-width: 160px; }
@@ -287,17 +297,15 @@ body.dark .fg { border-bottom-color: #555; }
 <body>
 
 <div class="header">
-  <h1>🎩 日文敬語練習</h1>
+  <h1>日文敬語練習</h1>
   <div class="header-stats">
     <span class="stat-badge correct" id="stat-correct">✓ 0</span>
     <span class="stat-badge wrong" id="stat-wrong">✗ 0</span>
     <span class="stat-badge" id="stat-total">共 0 題</span>
   </div>
-  <div class="theme-toggle-group">
-    <button class="theme-btn active" id="theme-light" onclick="setTheme('light')" title="亮色模式">☀️</button>
-    <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="深色模式">🌙</button>
-    <button class="theme-btn" id="theme-gray" onclick="setTheme('gray')" title="黑白模式">◑</button>
-  </div>
+  <button class="theme-toggle-btn" id="theme-toggle" onclick="cycleTheme()" title="切換主題" aria-label="切換主題">
+    <svg id="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+  </button>
 </div>
 
 <div class="settings-bar">
@@ -307,11 +315,11 @@ body.dark .fg { border-bottom-color: #555; }
   <button class="pill-btn" id="type-both" onclick="setType('both')">全部混合</button>
   <div class="divider-v"></div>
   <span class="settings-label">模式</span>
-  <button class="pill-btn active-mode" id="mode-flash" onclick="setMode('flash')">📇 單字卡</button>
-  <button class="pill-btn" id="mode-quiz" onclick="setMode('quiz')">✏️ 填空</button>
-  <button class="pill-btn" id="mode-match" onclick="setMode('match')">🔀 配對選擇</button>
-  <button class="pill-btn" id="mode-judge" onclick="setMode('judge')">⚖️ 敬語判斷</button>
-  <button class="pill-btn" id="mode-ref" onclick="setMode('ref')">📋 參考表</button>
+  <button class="pill-btn active-mode" id="mode-flash" onclick="setMode('flash')">單字卡</button>
+  <button class="pill-btn" id="mode-quiz" onclick="setMode('quiz')">填空</button>
+  <button class="pill-btn" id="mode-match" onclick="setMode('match')">配對選擇</button>
+  <button class="pill-btn" id="mode-judge" onclick="setMode('judge')">敬語判斷</button>
+  <button class="pill-btn" id="mode-ref" onclick="setMode('ref')">參考表</button>
 </div>
 
 <div class="form-filter" id="form-filter">
@@ -604,7 +612,7 @@ function render() {
   const area = document.getElementById('main-area');
   if (currentMode === 'ref') { renderRef(area); return; }
   if (queue.length === 0) {
-    area.innerHTML = `<div class="empty-state"><div class="big">🤔</div><p>請至少選擇一種詞型！</p></div>`;
+    area.innerHTML = `<div class="empty-state"><p>請至少選擇一種詞型！</p></div>`;
     return;
   }
   if (currentIdx >= queue.length) { renderDone(area); return; }
@@ -652,7 +660,7 @@ function renderFlash(area, progress) {
         <div class="answer-big">${item.answer}${item.answerR ? '（'+item.answerR+'）' : ''}</div>
         <div class="answer-note">${note}</div>
       </div>
-      <div class="card-tap" id="card-tap">點擊卡片顯示答案 👆</div>
+      <div class="card-tap" id="card-tap">點擊卡片顯示答案</div>
     </div>
     <div class="btn-row" id="btn-row" style="display:none">
       <button class="btn-wrong" onclick="markWrong()">✗ 不會</button>
@@ -900,9 +908,7 @@ function nextJudge() {
 function renderDone(area) {
   const total = correctCount + wrongCount;
   const pct = total > 0 ? Math.round(correctCount / total * 100) : 0;
-  let emoji = pct >= 90 ? '🎉' : pct >= 70 ? '👍' : pct >= 50 ? '💪' : '📖';
   area.innerHTML = `<div class="done-state">
-    <div class="big">${emoji}</div>
     <h2>練習完成！</h2>
     <p>正確 ${correctCount} 題，錯誤 ${wrongCount} 題（正確率 ${pct}%）</p>
     ${wrongCount > 0 ? `<button class="btn-retry-wrong" onclick="restart(true)">重練錯題（${wrongCount}題）</button>` : ''}
@@ -976,14 +982,33 @@ function filterRef(val) {
 // ══════════════════════════════════════════
 //  THEME
 // ══════════════════════════════════════════
+const THEME_ORDER = ['light', 'dark', 'gray'];
+const THEME_ICONS = {
+  light: '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>',
+  dark: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+  gray: '<circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"></path>'
+};
+const THEME_TITLES = { light: '亮色模式', dark: '深色模式', gray: '黑白模式' };
+
 function setTheme(t) {
   document.body.classList.remove('dark', 'grayscale');
   if (t === 'dark') document.body.classList.add('dark');
   else if (t === 'gray') document.body.classList.add('grayscale');
-  ['light','dark','gray'].forEach(x => {
-    document.getElementById('theme-'+x).classList.toggle('active', x === t);
-  });
+
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.innerHTML = THEME_ICONS[t];
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.title = THEME_TITLES[t];
+
   try { localStorage.setItem('keigo-theme', t); } catch(e) {}
+}
+
+function cycleTheme() {
+  let current = 'light';
+  try { current = localStorage.getItem('keigo-theme') || 'light'; } catch(e) {}
+  const idx = THEME_ORDER.indexOf(current);
+  const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length];
+  setTheme(next);
 }
 
 // ══════════════════════════════════════════
@@ -992,8 +1017,8 @@ function setTheme(t) {
 (function(){
   try {
     const saved = localStorage.getItem('keigo-theme');
-    if (saved) setTheme(saved);
-  } catch(e) {}
+    setTheme(saved || 'light');
+  } catch(e) { setTheme('light'); }
 })();
 setupFuriganaLongPress();
 restart();
